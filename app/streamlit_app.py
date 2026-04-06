@@ -77,6 +77,16 @@ if st.button("Next Turn"):
 def get_strongest_piece(cell):
     return max(cell, key=lambda p: PIECE_VALUE[p.kind])
 
+def get_random_empty_cell(grid):
+    import random
+
+    while True:
+        x = random.randint(0, grid.size - 1)
+        y = random.randint(0, grid.size - 1)
+
+        if not grid.cells[x][y]:
+            return x, y
+
 def render_grid(grid):
     for row in grid.cells:
         cols = st.columns(len(row))
