@@ -1,5 +1,3 @@
-# config/constants.py
-
 GRID_SIZE = 20
 
 PIECE_VALUE = {
@@ -7,5 +5,6 @@ PIECE_VALUE = {
     "knight": 3,
     "bishop": 3,
     "rook": 5,
-    "queen": 9
+    "queen": 9,
+    "king": 20,
 }
