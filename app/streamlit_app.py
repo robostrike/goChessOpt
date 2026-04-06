@@ -71,59 +71,42 @@ def get_strongest_piece(cell):
 
 
 def render_grid(grid):
-    grid_html = ""
-
     for row in grid.cells:
-        row_html = '<div style="display:flex;">'
+        cols = st.columns(len(row))
 
-        for cell in row:
+        for i, cell in enumerate(row):
             if not cell:
-                row_html += """
-                <div style="
-                    width:30px;height:30px;
-                    border:1px solid #ccc;
-                    display:flex;
-                    align-items:center;
-                    justify-content:center;
-                    font-size:10px;
-                ">.</div>
-                """
+                cols[i].markdown(
+                    "<div style='text-align:center;'>.</div>",
+                    unsafe_allow_html=True
+                )
                 continue
 
             # Dominant faction
             factions = [p.faction for p in cell]
             dominant = max(set(factions), key=factions.count)
-
             color = FACTION_COLORS.get(dominant, "#999")
 
             # Strongest piece
             piece = get_strongest_piece(cell)
             symbol = PIECE_SYMBOLS.get(piece.kind, "?")
-
             count = len(cell)
 
             tooltip = ", ".join([f"{p.faction}-{p.kind}" for p in cell])
 
-            row_html += f"""
-            <div title="{tooltip}" style="
-                width:30px;height:30px;
-                background-color:{color};
-                border:1px solid #333;
-                color:white;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                font-size:12px;
-                font-weight:bold;
-            ">
-                {symbol}{count if count > 1 else ""}
-            </div>
-            """
-
-        row_html += "</div>"
-        grid_html += row_html
-
-    st.markdown(grid_html, unsafe_allow_html=True)
+            # Render cell
+            cols[i].markdown(f"""
+                <div title="{tooltip}" style="
+                    background-color:{color};
+                    padding:6px;
+                    text-align:center;
+                    color:white;
+                    font-weight:bold;
+                    border-radius:4px;
+                ">
+                    {symbol}{count if count > 1 else ""}
+                </div>
+            """, unsafe_allow_html=True)
 
 
 render_grid(st.session_state.grid)
