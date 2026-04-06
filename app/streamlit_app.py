@@ -56,7 +56,7 @@ if "grid" not in st.session_state:
     st.session_state.grid = Grid(GRID_SIZE)
 
     factions = ["A", "B"]
-    unit_types = ["pawn", "knight", "bishop", "rook"]
+    unit_types = ["pawn", "knight", "bishop", "rook", "king"]
 
     for faction in factions:
         # 👑 Spawn KING first
