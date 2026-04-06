@@ -19,7 +19,6 @@ from config.constants import PIECE_VALUE
 # ----------------------------
 
 GRID_SIZE = 20
-ACTION = 0
 
 FACTION_COLORS = {
     "A": "#4A90E2",
@@ -79,12 +78,17 @@ st.title("Territorial Chess Simulation")
 agent_A = RandomAgent()
 agent_B = RandomAgent()
 
+# Initialize turn state
+if "current_turn" not in st.session_state:
+    st.session_state.current_turn = "A"  # Start with faction A
+
 if st.button("Next Turn"):
-    if ACTION == 0:
+    if st.session_state.current_turn == "A":
         run_turn(st.session_state.grid, "A", agent_A)
+        st.session_state.current_turn = "B"
     else:
         run_turn(st.session_state.grid, "B", agent_B)
-    ACTION = ACTION*(-1) - 1
+        st.session_state.current_turn = "A"
 
 # ----------------------------
 # RENDER GRID
