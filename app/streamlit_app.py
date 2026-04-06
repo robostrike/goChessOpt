@@ -82,6 +82,34 @@ agent_B = RandomAgent()
 if "current_turn" not in st.session_state:
     st.session_state.current_turn = "A"  # Start with faction A
 
+# Debug info section
+with st.expander("Debug Info"):
+    st.write(f"Current turn: {st.session_state.current_turn}")
+    
+    # Show pieces on board
+    pieces_info = []
+    for x in range(st.session_state.grid.size):
+        for y in range(st.session_state.grid.size):
+            cell = st.session_state.grid.cells[x][y]
+            if cell:
+                piece = cell[0]
+                pieces_info.append(f"{piece.faction} {piece.kind} at ({x},{y})")
+    
+    st.write("Pieces on board:")
+    for info in pieces_info:
+        st.write(f"- {info}")
+    
+    # Show available moves
+    if st.session_state.current_turn == "A":
+        moves = agent_A.get_moves(st.session_state.grid, "A")
+    else:
+        moves = agent_B.get_moves(st.session_state.grid, "B")
+    
+    st.write(f"Available moves: {len(moves)}")
+    for i, move in enumerate(moves[:5]):  # Show first 5 moves
+        if move["type"] in ["move", "capture"]:
+            st.write(f"- {move['type']}: {move['from']} -> {move['to']} ({move['piece'].kind})")
+
 if st.button("Next Turn"):
     if st.session_state.current_turn == "A":
         run_turn(st.session_state.grid, "A", agent_A)
