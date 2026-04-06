@@ -69,7 +69,6 @@ if st.button("Next Turn"):
 def get_strongest_piece(cell):
     return max(cell, key=lambda p: PIECE_VALUE[p.kind])
 
-
 def render_grid(grid):
     for row in grid.cells:
         cols = st.columns(len(row))
@@ -82,21 +81,13 @@ def render_grid(grid):
                 )
                 continue
 
-            # Dominant faction
-            factions = [p.faction for p in cell]
-            dominant = max(set(factions), key=factions.count)
-            color = FACTION_COLORS.get(dominant, "#999")
+            piece = cell[0]
 
-            # Strongest piece
-            piece = get_strongest_piece(cell)
+            color = FACTION_COLORS.get(piece.faction, "#999")
             symbol = PIECE_SYMBOLS.get(piece.kind, "?")
-            count = len(cell)
 
-            tooltip = ", ".join([f"{p.faction}-{p.kind}" for p in cell])
-
-            # Render cell
             cols[i].markdown(f"""
-                <div title="{tooltip}" style="
+                <div style="
                     background-color:{color};
                     padding:6px;
                     text-align:center;
@@ -104,7 +95,7 @@ def render_grid(grid):
                     font-weight:bold;
                     border-radius:4px;
                 ">
-                    {symbol}{count if count > 1 else ""}
+                    {symbol}
                 </div>
             """, unsafe_allow_html=True)
 
