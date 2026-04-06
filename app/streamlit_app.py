@@ -30,7 +30,8 @@ PIECE_SYMBOLS = {
     "knight": "K",
     "bishop": "B",
     "rook": "R",
-    "queen": "Q"
+    "queen": "Q",
+    "king": "♔"
 }
 
 
