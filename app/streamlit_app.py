@@ -19,6 +19,7 @@ from config.constants import PIECE_VALUE
 # ----------------------------
 
 GRID_SIZE = 20
+ACTION = 0
 
 FACTION_COLORS = {
     "A": "#4A90E2",
@@ -79,9 +80,11 @@ agent_A = RandomAgent()
 agent_B = RandomAgent()
 
 if st.button("Next Turn"):
-    run_turn(st.session_state.grid, "A", agent_A)
-    run_turn(st.session_state.grid, "B", agent_B)
-
+    if Action == 0:
+        run_turn(st.session_state.grid, "A", agent_A)
+    else:
+        run_turn(st.session_state.grid, "B", agent_B)
+    Action = Action*(-1) - 1
 
 # ----------------------------
 # RENDER GRID
