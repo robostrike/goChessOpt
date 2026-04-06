@@ -11,7 +11,13 @@ from models.grid import Grid
 from models.piece import Piece
 from engine.game import run_turn
 from ai.random_agent import RandomAgent
+from ai.optimizer_agent import OptimizerAgent
 from config.constants import PIECE_VALUE
+from engine.territorial import (
+    calculate_territorial_control, 
+    calculate_territorial_score,
+    get_territorial_color
+)
 
 
 # ----------------------------
@@ -51,21 +57,65 @@ def get_random_empty_cell(grid):
             return x, y
 
 
+def get_random_empty_cell_within_distance(grid, center_x, center_y, max_distance):
+    """Find empty cell within specified distance from center point"""
+    import random
+    
+    attempts = 0
+    max_attempts = 100
+    
+    while attempts < max_attempts:
+        # Generate random position within distance bounds
+        dx = random.randint(-max_distance, max_distance)
+        dy = random.randint(-max_distance, max_distance)
+        
+        # Check if within distance (using Manhattan distance for simplicity)
+        if abs(dx) + abs(dy) <= max_distance:
+            x = center_x + dx
+            y = center_y + dy
+            
+            # Check bounds and if empty
+            if (0 <= x < grid.size and 0 <= y < grid.size and 
+                not grid.cells[x][y]):
+                return x, y
+        
+        attempts += 1
+    
+    # Fallback to any empty cell if can't find within distance
+    return get_random_empty_cell(grid)
+
+
+def get_spawn_distance(piece_type):
+    """Return spawn distance for each piece type"""
+    spawn_distances = {
+        "pawn": 1,
+        "rook": 2,
+        "bishop": 2,
+        "knight": 2,
+        "queen": 1,
+        "king": 5
+    }
+    return spawn_distances.get(piece_type, 1)
+
+
 if "grid" not in st.session_state:
     st.session_state.grid = Grid(GRID_SIZE)
 
     factions = ["A", "B"]
-    unit_types = ["pawn", "knight", "bishop", "rook", "king"]
+    unit_types = ["pawn", "knight", "bishop", "rook", "queen"]
 
     for faction in factions:
         # 👑 Spawn KING first
-        x, y = get_random_empty_cell(st.session_state.grid)
-        st.session_state.grid.cells[x][y] = [Piece(faction, "king")]
+        king_x, king_y = get_random_empty_cell(st.session_state.grid)
+        st.session_state.grid.cells[king_x][king_y] = [Piece(faction, "king")]
 
-        # 🔢 Spawn 4 more random units (total = 5)
+        # 🔢 Spawn 4 more random units within distance from king
         for _ in range(4):
-            x, y = get_random_empty_cell(st.session_state.grid)
             kind = random.choice(unit_types)
+            spawn_distance = get_spawn_distance(kind)
+            x, y = get_random_empty_cell_within_distance(
+                st.session_state.grid, king_x, king_y, spawn_distance
+            )
             st.session_state.grid.cells[x][y] = [Piece(faction, kind)]
 
 
@@ -75,8 +125,18 @@ if "grid" not in st.session_state:
 
 st.title("Territorial Chess Simulation")
 
-agent_A = RandomAgent()
-agent_B = RandomAgent()
+# Agent selection sidebar
+st.sidebar.header("Agent Configuration")
+use_optimizer = st.sidebar.checkbox("Use Optimizer Agent", value=True)
+agent_depth = st.sidebar.slider("Optimization Depth", min_value=1, max_value=3, value=1)
+
+# Initialize agents
+if use_optimizer:
+    agent_A = OptimizerAgent(depth=agent_depth)
+    agent_B = OptimizerAgent(depth=agent_depth)
+else:
+    agent_A = RandomAgent()
+    agent_B = RandomAgent()
 
 # Initialize turn state
 if "current_turn" not in st.session_state:
@@ -85,6 +145,9 @@ if "current_turn" not in st.session_state:
 # Debug info section
 with st.expander("Debug Info"):
     st.write(f"Current turn: {st.session_state.current_turn}")
+    st.write(f"Agent type: {'Optimizer' if use_optimizer else 'Random'}")
+    if use_optimizer:
+        st.write(f"Optimization depth: {agent_depth}")
     
     # Show pieces on board
     pieces_info = []
@@ -99,16 +162,30 @@ with st.expander("Debug Info"):
     for info in pieces_info:
         st.write(f"- {info}")
     
-    # Show available moves
+    # Show available moves and optimization analysis
     if st.session_state.current_turn == "A":
         moves = agent_A.get_moves(st.session_state.grid, "A")
+        if use_optimizer:
+            analysis = agent_A.analyze_move_types(st.session_state.grid, "A")
+            st.write("Move Analysis (Faction A):")
+            for move_type, data in analysis.items():
+                if data['count'] > 0:
+                    st.write(f"- {move_type}: {data['count']} moves, avg score: {data['avg_score']:.1f}, best: {data['best_score']:.1f}")
     else:
         moves = agent_B.get_moves(st.session_state.grid, "B")
+        if use_optimizer:
+            analysis = agent_B.analyze_move_types(st.session_state.grid, "B")
+            st.write("Move Analysis (Faction B):")
+            for move_type, data in analysis.items():
+                if data['count'] > 0:
+                    st.write(f"- {move_type}: {data['count']} moves, avg score: {data['avg_score']:.1f}, best: {data['best_score']:.1f}")
     
     st.write(f"Available moves: {len(moves)}")
     for i, move in enumerate(moves[:5]):  # Show first 5 moves
         if move["type"] in ["move", "capture"]:
             st.write(f"- {move['type']}: {move['from']} -> {move['to']} ({move['piece'].kind})")
+        elif move["type"] == "reproduce":
+            st.write(f"- {move['type']}: at ({move['x']}, {move['y']})")
 
 if st.button("Next Turn"):
     if st.session_state.current_turn == "A":
@@ -126,33 +203,130 @@ def get_strongest_piece(cell):
     return max(cell, key=lambda p: PIECE_VALUE[p.kind])
 
 def render_grid(grid):
-    for row in grid.cells:
-        cols = st.columns(len(row))
-
-        for i, cell in enumerate(row):
-            if not cell:
-                cols[i].markdown(
-                    "<div style='text-align:center;'>.</div>",
-                    unsafe_allow_html=True
-                )
-                continue
-
-            piece = cell[0]
-
-            color = FACTION_COLORS.get(piece.faction, "#999")
-            symbol = PIECE_SYMBOLS.get(piece.kind, "?")
-
-            cols[i].markdown(f"""
-                <div style="
-                    background-color:{color};
-                    padding:0px;
-                    text-align:center;
-                    color:white;
-                    font-weight:bold;
-                ">
-                    {symbol}
+    # Calculate territorial control
+    territory, influence = calculate_territorial_control(grid, k=3)
+    scores = calculate_territorial_score(grid, territory)
+    
+    # Display territorial scores with color indicators
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col1:
+        # Faction A with color indicator
+        st.markdown(f"""
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 20px; height: 20px; background-color: {FACTION_COLORS['A']}; border-radius: 4px;"></div>
+            <div>
+                <div style="font-size: 0.8rem; color: #666;">Faction A</div>
+                <div style="font-size: 1.2rem; font-weight: bold;">{scores["A"]}</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        # Dynamic divider bar
+        total = scores["A"] + scores["B"]
+        if total > 0:
+            a_percentage = scores["A"] / total
+            b_percentage = scores["B"] / total
+            
+            st.markdown(f"""
+            <div style="padding: 10px 0;">
+                <div style="font-size: 0.8rem; color: #666; text-align: center; margin-bottom: 5px;">Territory Control</div>
+                <div style="height: 30px; border-radius: 15px; overflow: hidden; display: flex; border: 1px solid #ddd;">
+                    <div style="width: {a_percentage*100}%; background-color: {FACTION_COLORS['A']}; display: flex; align-items: center; justify-content: center;">
+                        <span style="color: white; font-size: 0.7rem; font-weight: bold;">{a_percentage*100:.0f}%</span>
+                    </div>
+                    <div style="width: {b_percentage*100}%; background-color: {FACTION_COLORS['B']}; display: flex; align-items: center; justify-content: center;">
+                        <span style="color: white; font-size: 0.7rem; font-weight: bold;">{b_percentage*100:.0f}%</span>
+                    </div>
                 </div>
+            </div>
             """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div style="padding: 10px 0;">
+                <div style="font-size: 0.8rem; color: #666; text-align: center; margin-bottom: 5px;">Territory Control</div>
+                <div style="height: 30px; border-radius: 15px; background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; border: 1px solid #ddd;">
+                    <span style="color: #666; font-size: 0.8rem;">No Territory</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    with col3:
+        # Faction B with color indicator
+        st.markdown(f"""
+        <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-end;">
+            <div style="text-align: right;">
+                <div style="font-size: 0.8rem; color: #666; text-align: right;">Faction B</div>
+                <div style="font-size: 1.2rem; font-weight: bold;">{scores["B"]}</div>
+            </div>
+            <div style="width: 20px; height: 20px; background-color: {FACTION_COLORS['B']}; border-radius: 4px;"></div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # CSS for equal-sized grid cells
+    st.markdown("""
+    <style>
+    .grid-container {
+        display: grid;
+        grid-template-columns: repeat(20, 1fr);
+        gap: 1px;
+        width: 100%;
+        aspect-ratio: 1;
+        max-width: 90vh;
+        margin: 0 auto;
+    }
+    .grid-cell {
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        font-weight: bold;
+        border: 1px solid #e0e0e0;
+    }
+    .piece-cell {
+        color: white !important;
+    }
+    .territory-cell {
+        font-size: 0.5rem !important;
+        color: #333 !important;
+    }
+    .neutral-cell {
+        color: #999 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Build grid HTML
+    grid_html = '<div class="grid-container">'
+    
+    for y in range(grid.size):
+        for x in range(grid.size):
+            cell = grid.cells[x][y]
+            
+            if cell:
+                # Piece cell
+                piece = cell[0]
+                color = FACTION_COLORS.get(piece.faction, "#999")
+                symbol = PIECE_SYMBOLS.get(piece.kind, "?")
+                grid_html += f'<div class="grid-cell piece-cell" style="background-color:{color};">{symbol}</div>'
+            else:
+                # Empty cell
+                faction = territory[x][y]
+                influence_val = influence[x][y]
+                
+                if faction and influence_val > 0:
+                    # Territorial coloring with 50% opacity
+                    base_color = FACTION_COLORS.get(faction, "#999")
+                    light_color = get_territorial_color(base_color, influence_val)
+                    grid_html += f'<div class="grid-cell territory-cell" style="background-color:{light_color}; opacity: 0.5;">.</div>'
+                else:
+                    # Neutral cell with white dot
+                    grid_html += '<div class="grid-cell neutral-cell" style="background-color:#f8f9fa; color: white;">.</div>'
+    
+    grid_html += '</div>'
+    st.markdown(grid_html, unsafe_allow_html=True)
 
 
 render_grid(st.session_state.grid)
