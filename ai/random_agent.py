@@ -1,5 +1,7 @@
 # ai/random_agent.py
+
 import random
+from engine.generator import generate_moves
 
 class RandomAgent:
     def get_moves(self, grid, faction):
