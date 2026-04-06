@@ -1,13 +1,6 @@
 # engine/generator.py
 
-from config.constants import GRID_SIZE
-
-
 def generate_moves(grid, faction):
-    """
-    Generate all possible moves for a faction.
-    Returns a list of move dictionaries.
-    """
     moves = []
 
     for x in range(grid.size):
@@ -17,36 +10,32 @@ def generate_moves(grid, faction):
             if not cell:
                 continue
 
-            for piece in cell:
-                if piece.faction != faction:
-                    continue
+            piece = cell[0]
 
-                # Movement moves
-                moves.extend(get_adjacent_moves(grid, x, y, piece))
+            if piece.faction != faction:
+                continue
 
-                # Reproduction move
-                if len(cell) >= 2:
-                    moves.append({
-                        "type": "reproduce",
-                        "x": x,
-                        "y": y,
-                        "faction": faction
-                    })
+            # Movement + Capture
+            moves.extend(get_adjacent_moves(grid, x, y, piece))
+
+            # Reproduction (new rule)
+            if has_empty_neighbor(grid, x, y):
+                moves.append({
+                    "type": "reproduce",
+                    "x": x,
+                    "y": y,
+                    "faction": faction
+                })
 
     return moves
 
 
 # ----------------------------
-# Movement (simple version)
+# Movement Logic
 # ----------------------------
 
 def get_adjacent_moves(grid, x, y, piece):
-    """
-    Basic movement: up/down/left/right
-    (You can later expand per piece type)
-    """
-    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-
+    directions = [(-1,0),(1,0),(0,-1),(0,1)]
     moves = []
 
     for dx, dy in directions:
@@ -57,8 +46,8 @@ def get_adjacent_moves(grid, x, y, piece):
 
         target_cell = grid.cells[nx][ny]
 
-        # Move (empty or same faction)
-        if not target_cell or all(p.faction == piece.faction for p in target_cell):
+        # Move ONLY if empty
+        if not target_cell:
             moves.append({
                 "type": "move",
                 "from": (x, y),
@@ -66,8 +55,8 @@ def get_adjacent_moves(grid, x, y, piece):
                 "piece": piece
             })
 
-        # Capture (enemy present)
-        elif any(p.faction != piece.faction for p in target_cell):
+        # Capture ONLY if enemy
+        elif target_cell and target_cell[0].faction != piece.faction:
             moves.append({
                 "type": "capture",
                 "from": (x, y),
@@ -81,6 +70,17 @@ def get_adjacent_moves(grid, x, y, piece):
 # ----------------------------
 # Helpers
 # ----------------------------
+
+def has_empty_neighbor(grid, x, y):
+    directions = [(-1,0),(1,0),(0,-1),(0,1)]
+
+    for dx, dy in directions:
+        nx, ny = x + dx, y + dy
+        if in_bounds(grid, nx, ny) and not grid.cells[nx][ny]:
+            return True
+
+    return False
+
 
 def in_bounds(grid, x, y):
     return 0 <= x < grid.size and 0 <= y < grid.size
