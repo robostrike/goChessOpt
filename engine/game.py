@@ -23,8 +23,14 @@ def apply_move(grid, move):
         piece = move["piece"]
 
         if piece in grid.cells[fx][fy]:
+
+            # ❌ Block movement if occupied
+            if grid.cells[tx][ty]:
+                return
+
             grid.cells[fx][fy].remove(piece)
-            grid.cells[tx][ty].append(piece)
+            grid.cells[tx][ty] = [piece]
+
 
     elif move_type == "capture":
         fx, fy = move["from"]
@@ -32,21 +38,31 @@ def apply_move(grid, move):
         piece = move["piece"]
 
         if piece in grid.cells[fx][fy]:
-            grid.cells[tx][ty] = [
-                p for p in grid.cells[tx][ty]
-                if p.faction == piece.faction
-            ]
-            grid.cells[fx][fy].remove(piece)
-            grid.cells[tx][ty].append(piece)
+
+            # Only capture if enemy exists
+            if grid.cells[tx][ty]:
+                target = grid.cells[tx][ty][0]
+
+                if target.faction != piece.faction:
+                    grid.cells[fx][fy].remove(piece)
+                    grid.cells[tx][ty] = [piece]
+
 
     elif move_type == "reproduce":
         x, y = move["x"], move["y"]
         faction = move["faction"]
 
+        # ❌ Only reproduce into EMPTY adjacent cell
+        empty_neighbors = get_empty_neighbors(grid, x, y)
+
+        if not empty_neighbors:
+            return
+
+        nx, ny = empty_neighbors[0]  # simple choice
+
         kind = reproduce(grid.cells[x][y])
         if kind:
-            grid.cells[x][y].append(Piece(faction, kind))
-
+            grid.cells[nx][ny] = [Piece(faction, kind)]
 
 def resolve_board(grid):
     for x in range(grid.size):
