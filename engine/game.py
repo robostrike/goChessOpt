@@ -14,7 +14,6 @@ def run_turn(grid, faction, strategy):
     resolve_board(grid)
 
 
-# ✅ THIS FUNCTION MUST EXIST
 def apply_move(grid, move):
     move_type = move["type"]
 
@@ -37,7 +36,6 @@ def apply_move(grid, move):
                 p for p in grid.cells[tx][ty]
                 if p.faction == piece.faction
             ]
-
             grid.cells[fx][fy].remove(piece)
             grid.cells[tx][ty].append(piece)
 
