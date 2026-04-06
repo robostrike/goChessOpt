@@ -73,3 +73,15 @@ def resolve_board(grid):
                 continue
 
             grid.cells[x][y] = resolve_combat(cell)
+
+def get_empty_neighbors(grid, x, y):
+    directions = [(-1,0),(1,0),(0,-1),(0,1)]
+    result = []
+
+    for dx, dy in directions:
+        nx, ny = x + dx, y + dy
+        if 0 <= nx < grid.size and 0 <= ny < grid.size:
+            if not grid.cells[nx][ny]:
+                result.append((nx, ny))
+
+    return result
