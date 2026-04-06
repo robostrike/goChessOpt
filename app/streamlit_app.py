@@ -41,11 +41,19 @@ PIECE_SYMBOLS = {
 if "grid" not in st.session_state:
     st.session_state.grid = Grid(GRID_SIZE)
 
-    for _ in range(10):
-        x = random.randint(0, GRID_SIZE - 1)
-        y = random.randint(0, GRID_SIZE - 1)
-        faction = random.choice(["A", "B"])
-        st.session_state.grid.add_piece(x, y, Piece(faction, "pawn"))
+    factions = ["A", "B"]
+    unit_types = ["pawn", "knight", "bishop", "rook"]
+
+    for faction in factions:
+        # 👑 Spawn KING first
+        x, y = get_random_empty_cell(st.session_state.grid)
+        st.session_state.grid.cells[x][y] = [Piece(faction, "king")]
+
+        # 🔢 Spawn 4 more random units (total = 5)
+        for _ in range(4):
+            x, y = get_random_empty_cell(st.session_state.grid)
+            kind = random.choice(unit_types)
+            st.session_state.grid.cells[x][y] = [Piece(faction, kind)]
 
 
 # ----------------------------
