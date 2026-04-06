@@ -113,11 +113,10 @@ def render_grid(grid):
             cols[i].markdown(f"""
                 <div style="
                     background-color:{color};
-                    padding:2px;
+                    padding:0px;
                     text-align:center;
                     color:white;
                     font-weight:bold;
-                    border-radius:2px;
                 ">
                     {symbol}
                 </div>
