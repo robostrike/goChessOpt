@@ -84,7 +84,7 @@ if st.button("Next Turn"):
         run_turn(st.session_state.grid, "A", agent_A)
     else:
         run_turn(st.session_state.grid, "B", agent_B)
-    ACTION = Action*(-1) - 1
+    ACTION = ACTION*(-1) - 1
 
 # ----------------------------
 # RENDER GRID
