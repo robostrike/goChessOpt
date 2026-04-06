@@ -26,11 +26,11 @@ FACTION_COLORS = {
 }
 
 PIECE_SYMBOLS = {
-    "pawn": "P",
-    "knight": "K",
-    "bishop": "B",
-    "rook": "R",
-    "queen": "Q",
+    "pawn": "♙",
+    "knight": "♘",
+    "bishop": "♗",
+    "rook": "♖",
+    "queen": "♕",
     "king": "♔"
 }
 
