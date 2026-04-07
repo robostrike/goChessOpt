@@ -50,35 +50,27 @@ def get_strategic_moves(grid, faction, moves):
 def run_turn(grid, faction, strategy):
     moves = strategy.get_moves(grid, faction)
     
-    # Phase 1: Evaluate and sort moves by territory gain
+    if not moves:
+        return
+    
+    # Phase 1: Evaluate and sort moves by territory gain (if movement/capture moves exist)
     strategic_moves = get_strategic_moves(grid, faction, moves)
     
-    # Phase 2: Group strategic moves by destination
-    move_targets = {}
-
-    for move in strategic_moves:
-        if move["type"] in ["move", "capture"]:
-            tx, ty = move["to"]
-            move_targets.setdefault((tx, ty), []).append(move)
-
-    # Phase 3: Resolve conflicts (prioritize higher-scoring moves)
-    valid_moves = []
-
-    for target, competing_moves in move_targets.items():
-        if len(competing_moves) == 1:
-            valid_moves.append(competing_moves[0])
-        else:
-            # Choose the move with highest territory score (first in list due to sorting)
-            valid_moves.append(competing_moves[0])
-
-    # Include reproduction moves (no conflict with movement)
-    for move in moves:
-        if move["type"] == "reproduce":
-            valid_moves.append(move)
-
-    # Phase 4: Apply moves
-    for move in valid_moves:
-        apply_move(grid, move)
+    # Phase 2: Select only the best move (or reproduction if no movement moves)
+    selected_move = None
+    
+    if strategic_moves:
+        # Select the best strategic move (highest territory score)
+        selected_move = strategic_moves[0]
+    else:
+        # No movement/capture moves, check for reproduction
+        reproduction_moves = [move for move in moves if move["type"] == "reproduce"]
+        if reproduction_moves:
+            selected_move = reproduction_moves[0]
+    
+    # Phase 3: Apply the single selected move
+    if selected_move:
+        apply_move(grid, selected_move)
 
 
 # ----------------------------
