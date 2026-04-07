@@ -130,9 +130,13 @@ st.sidebar.header("Agent Configuration")
 use_optimizer = st.sidebar.checkbox("Use Optimizer Agent", value=True)
 agent_depth = st.sidebar.slider("Optimization Depth", min_value=1, max_value=3, value=1)
 
-# Initialize turn state
+# Initialize turn state and cooldown tracking
 if "current_turn" not in st.session_state:
     st.session_state.current_turn = "A"  # Start with faction A
+if "piece_cooldowns_A" not in st.session_state:
+    st.session_state.piece_cooldowns_A = {}
+if "piece_cooldowns_B" not in st.session_state:
+    st.session_state.piece_cooldowns_B = {}
 
 # Initialize agents
 if use_optimizer:
@@ -148,6 +152,16 @@ st.sidebar.write(f"**Current turn:** {st.session_state.current_turn}")
 st.sidebar.write(f"**Agent type:** {'Optimizer' if use_optimizer else 'Random'}")
 if use_optimizer:
     st.sidebar.write(f"**Optimization depth:** {agent_depth}")
+
+# Show cooldown information
+current_cooldowns = st.session_state.piece_cooldowns_A if st.session_state.current_turn == "A" else st.session_state.piece_cooldowns_B
+if current_cooldowns:
+    st.sidebar.subheader("Active Cooldowns:")
+    for piece_key, cooldown in current_cooldowns.items():
+        x, y = piece_key.split('_')
+        st.sidebar.write(f"- Piece at ({x}, {y}): {cooldown} turns")
+else:
+    st.sidebar.write("**No active cooldowns**")
 
 # Show pieces on board
 st.sidebar.subheader("Pieces on Board")
@@ -191,10 +205,10 @@ for i, move in enumerate(moves[:5]):  # Show first 5 moves
 
 if st.button("Next Turn"):
     if st.session_state.current_turn == "A":
-        run_turn(st.session_state.grid, "A", agent_A)
+        run_turn(st.session_state.grid, "A", agent_A, st.session_state.piece_cooldowns_A)
         st.session_state.current_turn = "B"
     else:
-        run_turn(st.session_state.grid, "B", agent_B)
+        run_turn(st.session_state.grid, "B", agent_B, st.session_state.piece_cooldowns_B)
         st.session_state.current_turn = "A"
 
 # ----------------------------

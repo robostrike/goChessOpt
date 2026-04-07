@@ -3,10 +3,10 @@
 import random
 from engine.reproduction import reproduce
 from engine.territorial import calculate_territorial_control, calculate_territorial_score
-from models.piece import Piece
+from models.piece import Piece, PIECE_COOLDOWNS
 
 
-def evaluate_move_territory(grid, move, faction):
+def evaluate_move_territory(grid, move, faction, piece_cooldowns=None):
     """
     Evaluate the territory gain from a specific move
     Returns: territory_score (float)
@@ -22,11 +22,44 @@ def evaluate_move_territory(grid, move, faction):
     territory, influence = calculate_territorial_control(temp_grid)
     scores = calculate_territorial_score(temp_grid, territory)
     
-    # Return the score for the current faction
-    return scores.get(faction, 0)
+    # Get base territory score
+    base_score = scores.get(faction, 0)
+    
+    # Apply cooldown penalty if piece is on cooldown
+    if piece_cooldowns is not None and move["type"] in ["move", "capture"]:
+        piece = move["piece"]
+        piece_key = f"{move['from'][0]}_{move['from'][1]}"  # Unique key for piece position
+        
+        if piece_key in piece_cooldowns and piece_cooldowns[piece_key] > 0:
+            # Apply penalty based on remaining cooldown
+            cooldown_penalty = piece_cooldowns[piece_key] * 5  # 5 points per cooldown turn
+            base_score -= cooldown_penalty
+    
+    return base_score
 
 
-def get_strategic_moves(grid, faction, moves):
+def update_piece_cooldowns(piece_cooldowns, executed_move, current_turn):
+    """
+    Update cooldowns after a move is executed
+    """
+    if executed_move["type"] in ["move", "capture"]:
+        piece = executed_move["piece"]
+        piece_key = f"{executed_move['from'][0]}_{executed_move['from'][1]}"
+        
+        # Set cooldown for the moved piece
+        cooldown = PIECE_COOLDOWNS.get(piece.kind, 1)
+        piece_cooldowns[piece_key] = cooldown
+    
+    # Decrease all cooldowns by 1
+    for key in list(piece_cooldowns.keys()):
+        piece_cooldowns[key] = max(0, piece_cooldowns[key] - 1)
+        
+        # Remove entries with zero cooldown
+        if piece_cooldowns[key] == 0:
+            del piece_cooldowns[key]
+
+
+def get_strategic_moves(grid, faction, moves, piece_cooldowns=None):
     """
     Evaluate all possible moves and return them sorted by territory gain
     Returns: List of moves sorted by territory score (descending)
@@ -35,7 +68,7 @@ def get_strategic_moves(grid, faction, moves):
     
     for move in moves:
         if move["type"] in ["move", "capture"]:
-            territory_score = evaluate_move_territory(grid, move, faction)
+            territory_score = evaluate_move_territory(grid, move, faction, piece_cooldowns)
             move_scores.append({
                 'move': move,
                 'territory_score': territory_score
@@ -47,14 +80,22 @@ def get_strategic_moves(grid, faction, moves):
     return [item['move'] for item in move_scores]
 
 
-def run_turn(grid, faction, strategy):
+def run_turn(grid, faction, strategy, piece_cooldowns=None):
+    """
+    Run a turn with cooldown system
+    piece_cooldowns: dict to track cooldowns across turns
+    """
+    # Initialize cooldowns if not provided
+    if piece_cooldowns is None:
+        piece_cooldowns = {}
+    
     moves = strategy.get_moves(grid, faction)
     
     if not moves:
-        return
+        return None
     
-    # Phase 1: Evaluate and sort moves by territory gain (if movement/capture moves exist)
-    strategic_moves = get_strategic_moves(grid, faction, moves)
+    # Phase 1: Evaluate and sort moves by territory gain with cooldown consideration
+    strategic_moves = get_strategic_moves(grid, faction, moves, piece_cooldowns)
     
     # Phase 2: Select only the best move (or reproduction if no movement moves)
     selected_move = None
@@ -68,9 +109,12 @@ def run_turn(grid, faction, strategy):
         if reproduction_moves:
             selected_move = reproduction_moves[0]
     
-    # Phase 3: Apply the single selected move
+    # Phase 3: Apply the single selected move and update cooldowns
     if selected_move:
         apply_move(grid, selected_move)
+        update_piece_cooldowns(piece_cooldowns, selected_move, faction)
+    
+    return selected_move
 
 
 # ----------------------------

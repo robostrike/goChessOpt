@@ -1,5 +1,15 @@
 # models/piece.py
 
+# Piece cooldown configuration
+PIECE_COOLDOWNS = {
+    "pawn": 1,
+    "rook": 3,
+    "bishop": 3,
+    "knight": 3,
+    "queen": 8,
+    "king": 1
+}
+
 class Piece:
     def __init__(self, faction, kind):
         self.faction = faction
@@ -23,22 +33,23 @@ class Piece:
             return []
     
     def _get_pawn_moves(self, grid, x, y):
-        """Pawns move forward one square (simplified)"""
+        """Pawns move one square in any cardinal direction (up, down, left, right)"""
         moves = []
-        # Determine forward direction based on faction
-        forward = -1 if self.faction == "A" else 1
+        # Cardinal directions: up, down, left, right
+        directions = [(0, -1), (0, 1), (-1, 0), (1, 0)]
         
-        # Move forward
-        nx, ny = x, y + forward
-        if self._in_bounds(grid, nx, ny) and not grid.cells[nx][ny]:
-            moves.append((nx, ny))
-        
-        # Capture diagonally
-        for dx in [-1, 1]:
-            nx, ny = x + dx, y + forward
-            if (self._in_bounds(grid, nx, ny) and grid.cells[nx][ny] and 
-                grid.cells[nx][ny][0].faction != self.faction):
-                moves.append((nx, ny))
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            
+            if self._in_bounds(grid, nx, ny):
+                target_cell = grid.cells[nx][ny]
+                
+                if not target_cell:
+                    # Empty cell - can move
+                    moves.append((nx, ny))
+                elif target_cell[0].faction != self.faction:
+                    # Enemy piece - can capture
+                    moves.append((nx, ny))
         
         return moves
     
