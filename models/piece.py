@@ -7,7 +7,7 @@ PIECE_COOLDOWNS = {
     "bishop": 3,
     "knight": 3,
     "queen": 8,
-    "king": 1
+    "king": 0
 }
 
 class Piece:

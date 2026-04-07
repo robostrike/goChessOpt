@@ -179,17 +179,17 @@ for info in pieces_info:
 # Show available moves and optimization analysis
 st.sidebar.subheader("Move Analysis")
 if st.session_state.current_turn == "A":
-    moves = agent_A.get_moves(st.session_state.grid, "A")
+    moves = agent_A.get_moves(st.session_state.grid, "A", st.session_state.piece_cooldowns_A)
     if use_optimizer:
-        analysis = agent_A.analyze_move_types(st.session_state.grid, "A")
+        analysis = agent_A.analyze_move_types(st.session_state.grid, "A", st.session_state.piece_cooldowns_A)
         st.sidebar.write("**Faction A:**")
         for move_type, data in analysis.items():
             if data['count'] > 0:
                 st.sidebar.write(f"- {move_type}: {data['count']} moves, avg: {data['avg_score']:.1f}, best: {data['best_score']:.1f}")
 else:
-    moves = agent_B.get_moves(st.session_state.grid, "B")
+    moves = agent_B.get_moves(st.session_state.grid, "B", st.session_state.piece_cooldowns_B)
     if use_optimizer:
-        analysis = agent_B.analyze_move_types(st.session_state.grid, "B")
+        analysis = agent_B.analyze_move_types(st.session_state.grid, "B", st.session_state.piece_cooldowns_B)
         st.sidebar.write("**Faction B:**")
         for move_type, data in analysis.items():
             if data['count'] > 0:

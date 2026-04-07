@@ -20,7 +20,7 @@ class OptimizerAgent:
         # Evaluate each move and score the resulting board state
         scored_moves = []
         for move in all_moves:
-            score = self._evaluate_move(grid, move, faction)
+            score = self._evaluate_move(grid, move, faction, piece_cooldowns)
             scored_moves.append((move, score))
         
         # Sort by score (descending) and return top moves
@@ -35,8 +35,14 @@ class OptimizerAgent:
         
         return top_moves
     
-    def _evaluate_move(self, grid, move, faction):
+    def _evaluate_move(self, grid, move, faction, piece_cooldowns=None):
         """Evaluate a move by simulating it and scoring result"""
+        # Check if piece is on cooldown and return 0 if so
+        if piece_cooldowns is not None and move["type"] in ["move", "capture"]:
+            piece_key = f"{move['from'][0]}_{move['from'][1]}"
+            if piece_key in piece_cooldowns and piece_cooldowns[piece_key] > 0:
+                return 0  # Give weight 0 to cooldown pieces
+        
         # Create a deep copy of the grid to simulate the move
         sim_grid = copy.deepcopy(grid)
         
@@ -106,7 +112,7 @@ class OptimizerAgent:
         best_score = float('-inf')
         
         for move in all_moves:
-            score = self._evaluate_move(grid, move, faction)
+            score = self._evaluate_move(grid, move, faction, piece_cooldowns)
             if score > best_score:
                 best_score = score
                 best_move = move
@@ -126,7 +132,7 @@ class OptimizerAgent:
         move_scores = {'move': [], 'capture': [], 'reproduce': []}
         
         for move in all_moves:
-            score = self._evaluate_move(grid, move, faction)
+            score = self._evaluate_move(grid, move, faction, piece_cooldowns)
             move_type = move['type']
             
             move_analysis[move_type]['count'] += 1
