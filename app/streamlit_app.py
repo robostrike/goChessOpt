@@ -138,54 +138,56 @@ else:
     agent_A = RandomAgent()
     agent_B = RandomAgent()
 
+# Debug information in sidebar
+st.sidebar.header("Debug Information")
+st.sidebar.write(f"**Current turn:** {st.session_state.current_turn}")
+st.sidebar.write(f"**Agent type:** {'Optimizer' if use_optimizer else 'Random'}")
+if use_optimizer:
+    st.sidebar.write(f"**Optimization depth:** {agent_depth}")
+
+# Show pieces on board
+st.sidebar.subheader("Pieces on Board")
+pieces_info = []
+for x in range(st.session_state.grid.size):
+    for y in range(st.session_state.grid.size):
+        cell = st.session_state.grid.cells[x][y]
+        if cell:
+            piece = cell[0]
+            pieces_info.append(f"{piece.faction} {piece.kind} at ({x},{y})")
+
+for info in pieces_info:
+    st.sidebar.write(f"- {info}")
+
+# Show available moves and optimization analysis
+st.sidebar.subheader("Move Analysis")
+if st.session_state.current_turn == "A":
+    moves = agent_A.get_moves(st.session_state.grid, "A")
+    if use_optimizer:
+        analysis = agent_A.analyze_move_types(st.session_state.grid, "A")
+        st.sidebar.write("**Faction A:**")
+        for move_type, data in analysis.items():
+            if data['count'] > 0:
+                st.sidebar.write(f"- {move_type}: {data['count']} moves, avg: {data['avg_score']:.1f}, best: {data['best_score']:.1f}")
+else:
+    moves = agent_B.get_moves(st.session_state.grid, "B")
+    if use_optimizer:
+        analysis = agent_B.analyze_move_types(st.session_state.grid, "B")
+        st.sidebar.write("**Faction B:**")
+        for move_type, data in analysis.items():
+            if data['count'] > 0:
+                st.sidebar.write(f"- {move_type}: {data['count']} moves, avg: {data['avg_score']:.1f}, best: {data['best_score']:.1f}")
+
+st.sidebar.write(f"**Available moves:** {len(moves)}")
+st.sidebar.subheader("Top 5 Available Moves:")
+for i, move in enumerate(moves[:5]):  # Show first 5 moves
+    if move["type"] in ["move", "capture"]:
+        st.sidebar.write(f"{i+1}. {move['type']}: {move['from']} -> {move['to']} ({move['piece'].kind})")
+    elif move["type"] == "reproduce":
+        st.sidebar.write(f"{i+1}. {move['type']}: at ({move['x']}, {move['y']})")
+
 # Initialize turn state
 if "current_turn" not in st.session_state:
     st.session_state.current_turn = "A"  # Start with faction A
-
-# Debug info section
-with st.expander("Debug Info"):
-    st.write(f"Current turn: {st.session_state.current_turn}")
-    st.write(f"Agent type: {'Optimizer' if use_optimizer else 'Random'}")
-    if use_optimizer:
-        st.write(f"Optimization depth: {agent_depth}")
-    
-    # Show pieces on board
-    pieces_info = []
-    for x in range(st.session_state.grid.size):
-        for y in range(st.session_state.grid.size):
-            cell = st.session_state.grid.cells[x][y]
-            if cell:
-                piece = cell[0]
-                pieces_info.append(f"{piece.faction} {piece.kind} at ({x},{y})")
-    
-    st.write("Pieces on board:")
-    for info in pieces_info:
-        st.write(f"- {info}")
-    
-    # Show available moves and optimization analysis
-    if st.session_state.current_turn == "A":
-        moves = agent_A.get_moves(st.session_state.grid, "A")
-        if use_optimizer:
-            analysis = agent_A.analyze_move_types(st.session_state.grid, "A")
-            st.write("Move Analysis (Faction A):")
-            for move_type, data in analysis.items():
-                if data['count'] > 0:
-                    st.write(f"- {move_type}: {data['count']} moves, avg score: {data['avg_score']:.1f}, best: {data['best_score']:.1f}")
-    else:
-        moves = agent_B.get_moves(st.session_state.grid, "B")
-        if use_optimizer:
-            analysis = agent_B.analyze_move_types(st.session_state.grid, "B")
-            st.write("Move Analysis (Faction B):")
-            for move_type, data in analysis.items():
-                if data['count'] > 0:
-                    st.write(f"- {move_type}: {data['count']} moves, avg score: {data['avg_score']:.1f}, best: {data['best_score']:.1f}")
-    
-    st.write(f"Available moves: {len(moves)}")
-    for i, move in enumerate(moves[:5]):  # Show first 5 moves
-        if move["type"] in ["move", "capture"]:
-            st.write(f"- {move['type']}: {move['from']} -> {move['to']} ({move['piece'].kind})")
-        elif move["type"] == "reproduce":
-            st.write(f"- {move['type']}: at ({move['x']}, {move['y']})")
 
 if st.button("Next Turn"):
     if st.session_state.current_turn == "A":
