@@ -89,7 +89,7 @@ def run_turn(grid, faction, strategy, piece_cooldowns=None):
     if piece_cooldowns is None:
         piece_cooldowns = {}
     
-    moves = strategy.get_moves(grid, faction)
+    moves = strategy.get_moves(grid, faction, piece_cooldowns)
     
     if not moves:
         return None

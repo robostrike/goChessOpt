@@ -10,9 +10,9 @@ class OptimizerAgent:
     def __init__(self, depth=1):
         self.depth = depth  # How many moves ahead to look
     
-    def get_moves(self, grid, faction):
+    def get_moves(self, grid, faction, piece_cooldowns=None):
         """Get the best moves for the faction using optimization"""
-        all_moves = generate_moves(grid, faction)
+        all_moves = generate_moves(grid, faction, piece_cooldowns)
         
         if not all_moves:
             return []
@@ -95,9 +95,9 @@ class OptimizerAgent:
         
         return final_score
     
-    def get_best_move(self, grid, faction):
+    def get_best_move(self, grid, faction, piece_cooldowns=None):
         """Get the single best move (no randomness)"""
-        all_moves = generate_moves(grid, faction)
+        all_moves = generate_moves(grid, faction, piece_cooldowns)
         
         if not all_moves:
             return None
@@ -113,9 +113,9 @@ class OptimizerAgent:
         
         return best_move
     
-    def analyze_move_types(self, grid, faction):
+    def analyze_move_types(self, grid, faction, piece_cooldowns=None):
         """Analyze which types of moves are most beneficial"""
-        all_moves = generate_moves(grid, faction)
+        all_moves = generate_moves(grid, faction, piece_cooldowns)
         
         move_analysis = {
             'move': {'count': 0, 'avg_score': 0, 'best_score': 0},
