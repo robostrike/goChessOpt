@@ -130,6 +130,10 @@ st.sidebar.header("Agent Configuration")
 use_optimizer = st.sidebar.checkbox("Use Optimizer Agent", value=True)
 agent_depth = st.sidebar.slider("Optimization Depth", min_value=1, max_value=3, value=1)
 
+# Initialize turn state
+if "current_turn" not in st.session_state:
+    st.session_state.current_turn = "A"  # Start with faction A
+
 # Initialize agents
 if use_optimizer:
     agent_A = OptimizerAgent(depth=agent_depth)
@@ -184,10 +188,6 @@ for i, move in enumerate(moves[:5]):  # Show first 5 moves
         st.sidebar.write(f"{i+1}. {move['type']}: {move['from']} -> {move['to']} ({move['piece'].kind})")
     elif move["type"] == "reproduce":
         st.sidebar.write(f"{i+1}. {move['type']}: at ({move['x']}, {move['y']})")
-
-# Initialize turn state
-if "current_turn" not in st.session_state:
-    st.session_state.current_turn = "A"  # Start with faction A
 
 if st.button("Next Turn"):
     if st.session_state.current_turn == "A":
